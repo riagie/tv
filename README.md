@@ -190,8 +190,3 @@ Free to use for personal and commercial projects.
 ## Support
 
 For issues or questions, please contact the developer or open an issue in the repository.
-
----
-
-**Last Updated:** 2026-04-08
-**Version:** 1.5.0
