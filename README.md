@@ -1,58 +1,38 @@
 # TV Streaming Platform
 
-Indonesian TV streaming platform with SQLite database, modern UI/UX, and complete features.
-
----
+Indonesian TV streaming platform with SQLite database and modern UI.
 
 ## Features
 
-- **Modern Design** - Dark theme elegant
-- **Real-time Search** - Fast and accurate channel search
-- **Responsive** - Optimized for desktop, tablet, and mobile
-- **HLS Support** - Support .m3u8 streaming
-- **YouTube Embed** - Support YouTube live streams
-- **SQLite** - Easy channel database management
-- **Fast** - Optimized for speed
-- **Smooth** - Smooth transitions
-- **Admin** - Interface to add/edit/delete channels
-
----
+- Modern dark theme design
+- Real-time channel search
+- Responsive (desktop, tablet, mobile)
+- HLS (.m3u8) streaming support
+- YouTube embed support
+- SQLite database
+- Admin panel for channel management
 
 ## File Structure
 
 ```
 tv/
-├── index.php           # Main streaming page
-├── admin/              # Admin panel
-│   └── index.php       # Admin page
-├── data.php            # Fetch data from database
-├── api.php             # API for IPTV channels
-├── script.js           # JavaScript player & search
-├── styles.css          # Main styling
-├── layout.css          # Layout fixes
-├── tv.db               # Database
-├── .htaccess           # Apache configuration
-└── .gitignore          # Git ignore rules
+├── index.php       # Main page
+├── admin/          # Admin panel
+├── data.php        # Fetch data from database
+├── api.php         # IPTV API
+├── script.js       # JavaScript player
+├── styles.css      # Main styles
+├── layout.css      # Layout fixes
+├── tv.db           # Database
+└── .htaccess       # Apache config
 ```
-
----
 
 ## Setup
 
-### 1. Open Website
+1. Open `index.php` in browser
+2. Open `admin/` to manage channels
 
-Open `index.php` in your browser or web server.
-
-### 2. Admin Panel
-
-Open `admin/` to add/edit/delete channels:
-```
-http://localhost/tv/admin/
-```
-
----
-
-## Database Structure
+## Database
 
 File: `tv.db`
 
@@ -68,27 +48,15 @@ CREATE TABLE channels (
 )
 ```
 
----
-
 ## Channel Categories
 
-- `entertainment` - General entertainment
+- `entertainment` - Entertainment
 - `news` - News
-- `business` - Business and economics
+- `business` - Business
 - `sports` - Sports
 - `general` - General
 
----
-
-## Channel Management
-
-### Add New Channel
-
-1. Open `admin/`
-2. Fill "Add New Channel" form
-3. Click "Add Channel"
-
-### Or via SQL:
+## Add Channel via SQL
 
 ```php
 <?php
@@ -106,87 +74,37 @@ $stmt->execute([
 ?>
 ```
 
----
-
-## Customization
-
-### Change Colors
-
-Edit `styles.css`, change CSS variables in `:root`:
-
-```css
-:root {
-    --bg: #000000;
-    --text: #e5e5e5;
-    /* ... */
-}
-```
-
----
-
 ## Dependencies
 
 - **HLS.js** - For .m3u8 streaming (CDN)
 - **SQLite3** - For database (PHP extension)
 
-No additional PHP dependencies required.
-
----
-
-## Breakpoints
-
-- **Desktop**: > 768px
-- **Tablet**: 481px - 768px
-- **Mobile**: <= 480px
-
----
-
 ## Video Support
 
 - HLS streams (.m3u8)
 - YouTube live streams
-- Direct video files (.mp4, .webm, etc.)
+- Direct video files (.mp4, .webm)
 - iframe embeds
 
----
+## Customization
+
+Edit CSS variables in `styles.css`:
+
+```css
+:root {
+    --bg: #000000;
+    --text: #e5e5e5;
+}
+```
 
 ## Security
 
-- Database not committed to git (.gitignore)
+- Database not in git (.gitignore)
 - Input sanitization with htmlspecialchars()
-- Prepared statements for SQL queries
+- Prepared statements for SQL
 - XSS protection
-
----
 
 ## Notes
 
-- Make sure PHP extension `sqlite3` is installed
-- For production, use password protection for `admin/`
-
----
-
-## License
-
-Free to use for personal and commercial projects.
-
----
-
-## Developer
-
-**OGIE NURDIANA**
-- Website: https://ogienurdiana.com
-
----
-
-## Credits
-
-- HLS.js - https://github.com/video-dev/hls.js
-- Icons from Unicode/SVG
-- Channel logos from respective broadcasters
-
----
-
-## Support
-
-For issues or questions, please contact the developer or open an issue in the repository.
+- Requires PHP sqlite3 extension
+- Use password protection for admin/ in production

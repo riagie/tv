@@ -21,10 +21,14 @@ if (!is_array($channels)) {
     <link rel="icon" type="image/png" href="https://ogienurdiana.com/assets/img/male-technologist.png">
     <link rel="icon" hreflang="en-us" href="https://ogienurdiana.com/assets/img/male-technologist.png">
     <link rel="stylesheet" href="./styles.css?v=<?php echo filemtime(__DIR__ . '/styles.css'); ?>">
-    <link rel="stylesheet" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>">
+    <link rel="preload" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>"></noscript>
     <link rel="preconnect" href="https://www.youtube.com">
     <link rel="preconnect" href="https://i.ytimg.com">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://static.rctiplus.id">
+    <link rel="dns-prefetch" href="https://cdnjktbpid01.transvision.co.id">
+    <link rel="dns-prefetch" href="https://cdn.detik.net.id">
 </head>
 <body>
     <div class="app-container">
@@ -75,7 +79,14 @@ if (!is_array($channels)) {
                             ?>
                             <div class="channel-item" data-url="<?php echo $url; ?>" data-name="<?php echo $name; ?>" tabindex="0">
                                 <div class="channel-thumb">
-                                    <img src="<?php echo $img; ?>" alt="<?php echo $name; ?>" loading="lazy" onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23888\' stroke-width=\'2\' style=\'width:32px;height:32px;\'><rect x=\'2\' y=\'7\' width=\'20\' height=\'15\' rx=\'2\' ry=\'2\'></rect><polyline points=\'17 2 12 7 7 2\'></polyline></svg>'">
+                                    <img
+                                        src="<?php echo $img; ?>"
+                                        alt="<?php echo $name; ?>"
+                                        loading="lazy"
+                                        decoding="async"
+                                        fetchpriority="low"
+                                        onerror="this.outerHTML='<svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23888\' stroke-width=\'2\' style=\'width:32px;height:32px;\'><rect x=\'2\' y=\'7\' width=\'20\' height=\'15\' rx=\'2\' ry=\'2\'></rect><polyline points=\'17 2 12 7 7 2\'></polyline></svg>'"
+                                    >
                                 </div>
                                 <div class="channel-details">
                                     <div class="channel-name"><?php echo $name; ?></div>
@@ -152,7 +163,7 @@ if (!is_array($channels)) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="./script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" defer></script>
+    <script src="./script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>" defer></script>
 </body>
 </html>

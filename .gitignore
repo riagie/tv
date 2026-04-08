@@ -1,6 +1,7 @@
 # Ignore the vendor directory
 vendor/
 .htaccess
+.htaccesss
 
 # Ignore the Composer lock file
 composer.lock

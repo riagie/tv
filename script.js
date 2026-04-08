@@ -1,4 +1,4 @@
-/* TV Streaming Player */
+/* TV Streaming Player - Optimized */
 
 class Player {
     constructor() {
@@ -34,25 +34,19 @@ class Player {
     }
 
     loadChannels() {
-        // Store local channels
         this.local = Array.from(document.querySelectorAll('.channel-item'));
         this.channels = this.local;
-
-        if (this.count) {
-            this.count.textContent = this.channels.length;
-        }
+        if (this.count) this.count.textContent = this.channels.length;
     }
 
     bindEvents() {
         if (!this.channels.length) return;
 
-        // Channel click events
         this.channels.forEach((channel, index) => {
             channel.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.openChannel(index);
             });
-
             channel.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -61,19 +55,14 @@ class Player {
             });
         });
 
-        // Modal controls
         this.closeBtn?.addEventListener('click', () => this.closeModal());
         this.prevBtn?.addEventListener('click', () => this.playPrevious());
         this.nextBtn?.addEventListener('click', () => this.playNext());
 
-        // Close modal on backdrop click
         this.modal?.addEventListener('click', (e) => {
-            if (e.target === this.modal) {
-                this.closeModal();
-            }
+            if (e.target === this.modal) this.closeModal();
         });
 
-        // Keyboard navigation
         document.addEventListener('keydown', (e) => {
             if (this.modal?.classList.contains('active')) {
                 this.handleModalNavigation(e);
@@ -82,14 +71,11 @@ class Player {
             }
         });
 
-        // Tab button events
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        tabButtons.forEach(btn => {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const tab = btn.dataset.tab;
-                    switchTab(tab);
+                    switchTab(btn.dataset.tab);
                 }
             });
         });
@@ -106,9 +92,7 @@ class Player {
                 if (activeElement.classList.contains('tab-btn')) {
                     const tabs = Array.from(document.querySelectorAll('.tab-btn'));
                     const currentTab = tabs.indexOf(activeElement);
-                    if (currentTab < tabs.length - 1) {
-                        tabs[currentTab + 1].focus();
-                    }
+                    if (currentTab < tabs.length - 1) tabs[currentTab + 1].focus();
                 } else if (activeElement.classList.contains('channel-item')) {
                     this.focusChannel(currentIndex + 1, visibleChannels);
                 }
@@ -118,9 +102,7 @@ class Player {
                 if (activeElement.classList.contains('tab-btn')) {
                     const tabs = Array.from(document.querySelectorAll('.tab-btn'));
                     const currentTab = tabs.indexOf(activeElement);
-                    if (currentTab > 0) {
-                        tabs[currentTab - 1].focus();
-                    }
+                    if (currentTab > 0) tabs[currentTab - 1].focus();
                 } else if (activeElement.classList.contains('channel-item')) {
                     this.focusChannel(currentIndex - 1, visibleChannels);
                 }
@@ -128,12 +110,9 @@ class Player {
             case 'ArrowDown':
                 e.preventDefault();
                 if (activeElement === this.search || activeElement.classList.contains('tab-btn')) {
-                    if (visibleChannels.length > 0) {
-                        visibleChannels[0].focus();
-                    }
+                    if (visibleChannels.length > 0) visibleChannels[0].focus();
                 } else if (activeElement.classList.contains('channel-item')) {
-                    const gridColumns = this.getGridColumns();
-                    this.focusChannel(currentIndex + gridColumns, visibleChannels);
+                    this.focusChannel(currentIndex + this.getGridColumns(), visibleChannels);
                 }
                 break;
             case 'ArrowUp':
@@ -142,25 +121,20 @@ class Player {
                     if (this.search && currentIndex === 0) {
                         this.search.focus();
                     } else {
-                        const gridColumns = this.getGridColumns();
-                        this.focusChannel(currentIndex - gridColumns, visibleChannels);
+                        this.focusChannel(currentIndex - this.getGridColumns(), visibleChannels);
                     }
                 } else if (activeElement === this.search) {
                     const activeTab = document.querySelector('.tab-btn.active');
-                    if (activeTab) {
-                        activeTab.focus();
-                    }
+                    if (activeTab) activeTab.focus();
                 }
                 break;
             case 'Enter':
                 if (activeElement.classList.contains('channel-item')) {
                     e.preventDefault();
-                    const index = this.channels.indexOf(activeElement);
-                    this.openChannel(index);
+                    this.openChannel(this.channels.indexOf(activeElement));
                 } else if (activeElement.classList.contains('tab-btn')) {
                     e.preventDefault();
-                    const tab = activeElement.dataset.tab;
-                    switchTab(tab);
+                    switchTab(activeElement.dataset.tab);
                 }
                 break;
             case 'Escape':
@@ -171,19 +145,15 @@ class Player {
     }
 
     handleModalNavigation(e) {
-        switch(e.key) {
-            case 'Escape':
-                e.preventDefault();
-                this.closeModal();
-                break;
-            case 'ArrowLeft':
-                e.preventDefault();
-                this.playPrevious();
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                this.playNext();
-                break;
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            this.closeModal();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            this.playPrevious();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            this.playNext();
         }
     }
 
@@ -198,27 +168,15 @@ class Player {
 
     focusChannel(index, channels) {
         if (index >= 0 && index < channels.length) {
-            const channel = channels[index];
-            channel.focus();
-
-            channel.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-                inline: 'center'
-            });
+            channels[index].focus();
+            channels[index].scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         }
     }
 
     initSearch() {
         if (!this.search) return;
-
-        this.search.addEventListener('input', (e) => {
-            this.filterChannels(e.target.value.toLowerCase().trim());
-        });
-
-        if (this.clearBtn) {
-            this.clearBtn.addEventListener('click', () => this.clearSearch());
-        }
+        this.search.addEventListener('input', (e) => this.filterChannels(e.target.value.toLowerCase().trim()));
+        if (this.clearBtn) this.clearBtn.addEventListener('click', () => this.clearSearch());
     }
 
     clearSearch() {
@@ -230,23 +188,16 @@ class Player {
 
     filterChannels(query) {
         let visibleCount = 0;
-
         this.channels.forEach((channel) => {
             const channelName = channel.dataset.name?.toLowerCase() || '';
             const isMatch = channelName.includes(query);
-
-            if (isMatch) {
-                channel.style.setProperty('display', 'flex', 'important');
-                visibleCount++;
-            } else {
-                channel.style.setProperty('display', 'none', 'important');
-            }
+            channel.style.setProperty('display', isMatch ? 'flex' : 'none', 'important');
+            if (isMatch) visibleCount++;
         });
 
         if (this.noResults) {
             this.noResults.style.setProperty('display', visibleCount === 0 ? 'flex' : 'none', 'important');
         }
-
         if (this.clearBtn) {
             this.clearBtn.style.setProperty('display', query ? 'flex' : 'none', 'important');
         }
@@ -254,48 +205,30 @@ class Player {
 
     openChannel(index) {
         const channel = this.channels[index];
-        if (!channel) return;
+        if (!channel || !channel.dataset.url) return;
 
         this.index = index;
         const url = channel.dataset.url;
         const name = channel.dataset.name;
 
-        if (!url) {
-            return;
-        }
-
-        if (this.channelName) {
-            this.channelName.textContent = name || 'Unknown Channel';
-        }
+        if (this.channelName) this.channelName.textContent = name || 'Unknown Channel';
 
         this.showLoading();
-
         this.modal?.classList.add('active');
-        if (document.body) {
-            document.body.style.overflow = 'hidden';
-        }
+        if (document.body) document.body.style.overflow = 'hidden';
 
         this.enterFullscreen();
-
         this.interacted = true;
 
-        requestAnimationFrame(() => {
-            this.playStream(url);
-        });
+        requestAnimationFrame(() => this.playStream(url));
     }
 
     closeModal() {
         this.modal?.classList.remove('active');
-        if (document.body) {
-            document.body.style.overflow = '';
-        }
+        if (document.body) document.body.style.overflow = '';
         this.cleanup();
-
         this.exitFullscreen();
-
-        if (this.index >= 0 && this.channels[this.index]) {
-            this.channels[this.index].focus();
-        }
+        if (this.index >= 0 && this.channels[this.index]) this.channels[this.index].focus();
     }
 
     playPrevious() {
@@ -303,14 +236,8 @@ class Player {
         if (visibleChannels.length === 0) return;
 
         let newIndex = this.index - 1;
-        while (newIndex >= 0 && this.channels[newIndex]?.style.display === 'none') {
-            newIndex--;
-        }
-
-        if (newIndex < 0) {
-            newIndex = this.channels.length - 1;
-        }
-
+        while (newIndex >= 0 && this.channels[newIndex]?.style.display === 'none') newIndex--;
+        if (newIndex < 0) newIndex = this.channels.length - 1;
         this.openChannel(newIndex);
     }
 
@@ -319,14 +246,8 @@ class Player {
         if (visibleChannels.length === 0) return;
 
         let newIndex = this.index + 1;
-        while (newIndex < this.channels.length && this.channels[newIndex]?.style.display === 'none') {
-            newIndex++;
-        }
-
-        if (newIndex >= this.channels.length) {
-            newIndex = 0;
-        }
-
+        while (newIndex < this.channels.length && this.channels[newIndex]?.style.display === 'none') newIndex++;
+        if (newIndex >= this.channels.length) newIndex = 0;
         this.openChannel(newIndex);
     }
 
@@ -352,25 +273,16 @@ class Player {
             this.hls.destroy();
             this.hls = null;
         }
-
-        if (this.container) {
-            this.container.innerHTML = '';
-        }
-
+        if (this.container) this.container.innerHTML = '';
         const unmuteBtn = this.container?.querySelector('.unmute-button');
-        if (unmuteBtn) {
-            unmuteBtn.remove();
-        }
+        if (unmuteBtn) unmuteBtn.remove();
     }
 
     enterFullscreen() {
         const element = this.modal;
         if (!element) return;
-
         if (element.requestFullscreen) {
-            element.requestFullscreen().catch(err => {
-                // Fullscreen not supported or blocked
-            });
+            element.requestFullscreen().catch(() => {});
         } else if (element.webkitRequestFullscreen) {
             element.webkitRequestFullscreen();
         } else if (element.msRequestFullscreen) {
@@ -380,9 +292,7 @@ class Player {
 
     exitFullscreen() {
         if (document.exitFullscreen) {
-            document.exitFullscreen().catch(err => {
-                // Exit fullscreen failed
-            });
+            document.exitFullscreen().catch(() => {});
         } else if (document.webkitExitFullscreen) {
             document.webkitExitFullscreen();
         } else if (document.msExitFullscreen) {
@@ -402,9 +312,7 @@ class Player {
 
     updateLoadingText(text) {
         const loadingText = document.getElementById('loadingText');
-        if (loadingText) {
-            loadingText.textContent = text;
-        }
+        if (loadingText) loadingText.textContent = text;
     }
 
     playHls(url) {
@@ -414,13 +322,7 @@ class Player {
                 lowLatencyMode: true,
                 maxBufferLength: 30,
                 maxMaxBufferLength: 60,
-                backBufferLength: 10,
-                manifestLoadingTimeOut: 10000,
-                manifestLoadingMaxRetry: 3,
-                levelLoadingTimeOut: 10000,
-                fragLoadingTimeOut: 15000,
-                fragLoadingMaxRetry: 3,
-                enableStreaming: true,
+                backBufferLength: 10
             });
 
             this.hls.loadSource(url);
@@ -428,18 +330,15 @@ class Player {
             if (!video) return;
 
             this.hls.attachMedia(video);
-
             this.updateLoadingText('Memuat manifest...');
 
-            this.hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+            this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 this.updateLoadingText('Memulai playback...');
                 this.attemptAutoplay(video);
             });
 
             this.hls.on(Hls.Events.ERROR, (event, data) => {
-                if (data.fatal) {
-                    this.showError('Stream error. Coba channel lain.');
-                }
+                if (data.fatal) this.showError('Stream error. Coba channel lain.');
             });
         } else {
             const video = this.createVideo();
@@ -452,17 +351,16 @@ class Player {
     attemptAutoplay(video) {
         video.play().then(() => {
             this.hideLoading();
-        }).catch((err) => {
+        }).catch(() => {
             video.muted = true;
             video.play().then(() => {
                 this.showUnmuteButton(video);
                 this.hideLoading();
-            }).catch((err2) => {
+            }).catch(() => {
                 const loadingDiv = this.container?.querySelector('.player-loading');
                 if (loadingDiv) {
                     loadingDiv.classList.add('click-hint');
                     this.updateLoadingText('Klik video untuk memutar');
-
                     loadingDiv.addEventListener('click', () => {
                         video.muted = false;
                         video.play().then(() => {
@@ -476,9 +374,7 @@ class Player {
     }
 
     showUnmuteButton(video) {
-        if (!this.container) return;
-
-        if (this.container.querySelector('.unmute-button')) return;
+        if (!this.container || this.container.querySelector('.unmute-button')) return;
 
         const unmuteBtn = document.createElement('button');
         unmuteBtn.className = 'unmute-button';
@@ -513,7 +409,6 @@ class Player {
         if (!iframe) return;
 
         let embedUrl = url;
-
         if (url.includes('watch?v=')) {
             const videoId = url.split('watch?v=')[1].split('&')[0];
             embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1&rel=0&enablejsapi=1&widgetid=1&controls=1`;
@@ -523,10 +418,7 @@ class Player {
         }
 
         iframe.src = embedUrl;
-
-        setTimeout(() => {
-            this.hideLoading();
-        }, 3000);
+        setTimeout(() => this.hideLoading(), 3000);
     }
 
     playIframe(url) {
@@ -538,18 +430,11 @@ class Player {
         const separator = url.includes('?') ? '&' : '?';
         iframe.src = `${url}${separator}autoplay=1&playsinline=1&mute=0`;
 
-        setTimeout(() => {
-            this.hideLoading();
-        }, 3000);
+        setTimeout(() => this.hideLoading(), 3000);
 
-        iframe.addEventListener('load', () => {
-            // Stream loaded
-        });
-
+        iframe.addEventListener('load', () => {});
         window.addEventListener('error', (e) => {
-            if (e.target === iframe || e.target === window) {
-                e.preventDefault();
-            }
+            if (e.target === iframe || e.target === window) e.preventDefault();
         }, true);
     }
 
@@ -563,23 +448,13 @@ class Player {
         video.muted = false;
         video.playsInline = true;
         video.controls = true;
-
         video.setAttribute('webkit-playsinline', 'webkit-playsinline');
         video.setAttribute('x-webkit-airplay', 'allow');
-
         video.style.cssText = 'width:100%;height:100%;background:#000';
 
-        video.addEventListener('canplay', () => {
-            this.hideLoading();
-        });
-
-        video.addEventListener('playing', () => {
-            this.hideLoading();
-        });
-
-        video.addEventListener('error', () => {
-            this.showError('Gagal memuat video. Coba channel lain.');
-        });
+        video.addEventListener('canplay', () => this.hideLoading());
+        video.addEventListener('playing', () => this.hideLoading());
+        video.addEventListener('error', () => this.showError('Gagal memuat video. Coba channel lain.'));
 
         this.container.appendChild(video);
         return video;
@@ -593,19 +468,14 @@ class Player {
 
         iframe.allow = 'autoplay; fullscreen; playsinline; encrypted-media';
         iframe.allowFullscreen = true;
-
         iframe.setAttribute('webkitallowfullscreen', 'true');
         iframe.setAttribute('mozallowfullscreen', 'true');
         iframe.setAttribute('allowfullscreen', 'true');
-
         iframe.sandbox = 'allow-scripts allow-presentation allow-forms';
-
         iframe.style.cssText = 'width:100%;height:100%;border:none';
 
         iframe.addEventListener('load', () => {
-            setTimeout(() => {
-                this.hideLoading();
-            }, 2000);
+            setTimeout(() => this.hideLoading(), 2000);
         });
 
         this.container.appendChild(iframe);
@@ -624,9 +494,7 @@ class Player {
 
     hideLoading() {
         const loadingDiv = this.container?.querySelector('.player-loading');
-        if (loadingDiv && loadingDiv.parentNode === this.container) {
-            loadingDiv.remove();
-        }
+        if (loadingDiv && loadingDiv.parentNode === this.container) loadingDiv.remove();
     }
 
     async fetchIptvChannels(type) {
@@ -637,13 +505,9 @@ class Player {
             const response = await fetch(apiUrl);
             const data = await response.json();
 
-            if (data.error) {
-                throw new Error(data.message);
-            }
-
+            if (data.error) throw new Error(data.message);
             this.iptv = data.channels || [];
             return this.iptv;
-
         } catch (error) {
             return [];
         }
@@ -661,15 +525,11 @@ class Player {
                     <div class="empty-text">Tidak ada channel tersedia</div>
                 </div>
             `;
-            if (this.count) {
-                this.count.textContent = '0';
-            }
+            if (this.count) this.count.textContent = '0';
             return;
         }
 
-        this.local.forEach(ch => {
-            this.list.appendChild(ch.cloneNode(true));
-        });
+        this.local.forEach(ch => this.list.appendChild(ch.cloneNode(true)));
 
         const channels = Array.from(this.list.querySelectorAll('.channel-item'));
         channels.forEach((channel, index) => {
@@ -677,7 +537,6 @@ class Player {
                 e.preventDefault();
                 this.openChannel(index);
             });
-
             channel.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -687,10 +546,7 @@ class Player {
         });
 
         this.channels = channels;
-
-        if (this.count) {
-            this.count.textContent = channels.length;
-        }
+        if (this.count) this.count.textContent = channels.length;
     }
 
     renderIptvChannels(channels) {
@@ -705,9 +561,7 @@ class Player {
                     <div class="empty-text">Tidak ada channel tersedia</div>
                 </div>
             `;
-            if (this.count) {
-                this.count.textContent = '0';
-            }
+            if (this.count) this.count.textContent = '0';
             return;
         }
 
@@ -750,28 +604,19 @@ class Player {
         });
 
         this.channels = Array.from(this.list.querySelectorAll('.channel-item'));
-
-        if (this.count) {
-            this.count.textContent = channels.length;
-        }
+        if (this.count) this.count.textContent = channels.length;
     }
 
     playIptvChannel(channel) {
         const index = this.channels.findIndex(ch => ch.dataset.url === channel.url);
-        if (index >= 0) {
-            this.openChannel(index);
-        }
+        if (index >= 0) this.openChannel(index);
     }
 
 }
 
-// Initialize
 const player = new Player();
-
-// Make player globally accessible for debugging
 window.player = player;
 
-// Global functions for Tab Switching
 async function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -795,9 +640,7 @@ async function switchTab(tab) {
         `;
     }
 
-    if (channelCount) {
-        channelCount.textContent = '...';
-    }
+    if (channelCount) channelCount.textContent = '...';
 
     if (tab === 'local') {
         player.channels = player.local;
@@ -808,14 +651,10 @@ async function switchTab(tab) {
     }
 
     const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.value = '';
-    }
+    if (searchInput) searchInput.value = '';
 
     setTimeout(() => {
         const firstChannel = document.querySelector('.channel-item');
-        if (firstChannel) {
-            firstChannel.focus();
-        }
+        if (firstChannel) firstChannel.focus();
     }, 100);
 }

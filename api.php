@@ -20,6 +20,14 @@ $db = $path . '/tv.db';
 try {
     $pdo = new PDO('sqlite:' . $db);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+
+    // Optimize SQLite performance
+    $pdo->exec('PRAGMA synchronous = NORMAL');
+    $pdo->exec('PRAGMA journal_mode = WAL');
+    $pdo->exec('PRAGMA temp_store = MEMORY');
+    $pdo->exec('PRAGMA mmap_size = 268435456');
 
     // Check if database has data
     $stmt = $pdo->query("SELECT COUNT(*) FROM iptv_channels");
