@@ -1,0 +1,21 @@
+# Ignore the vendor directory
+vendor/
+.htaccess
+
+# Ignore the Composer lock file
+composer.lock
+
+# dotenv environment variable files
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
+
+# Ignore PHP-CS-Fixer configuration file
+.php-cs-fixer.cache
+.php-cs-fixer.php
+
+# Ignore SQLite database
+*.db
+.claude
