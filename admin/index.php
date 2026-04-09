@@ -5,9 +5,12 @@
  * Android TV Optimized
  */
 
+// Load environment variables
+require_once dirname(__DIR__) . '/loader.php';
+
 // Define base path untuk kompatibilitas di hosting
 $path = dirname(__FILE__);
-$db = $path . '/../tv.db';
+$db = DB_FILE;
 $message = '';
 
 // Handle form submissions
@@ -72,10 +75,10 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OGIE NURDIANA</title>
-    <meta name="description" content="OGIE NURDIANA - TV Streaming Platform">
-    <link rel="icon" type="image/png" href="https://ogienurdiana.com/assets/img/male-technologist.png">
-    <link rel="icon" hreflang="en-us" href="https://ogienurdiana.com/assets/img/male-technologist.png">
+    <title><?php echo APP_NAME; ?></title>
+    <meta name="description" content="<?php echo APP_DESCRIPTION; ?>">
+    <link rel="icon" type="image/png" href="<?php echo APP_ICON; ?>">
+    <link rel="icon" hreflang="en-us" href="<?php echo APP_ICON; ?>">
     <style>
         * {
             margin: 0;
@@ -427,7 +430,7 @@ try {
     <div class="container">
         <div class="header">
             <h1>Channels</h1>
-            <a href="../index.php" class="back-link" id="backLink">← Kembali</a>
+            <a href="<?php echo dirname($_SERVER['PHP_SELF']); ?>/../index.php" class="back-link" id="backLink">← Kembali</a>
         </div>
 
         <?php if ($message): ?>

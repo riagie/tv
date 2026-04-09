@@ -3,9 +3,12 @@
  * Data - Fetch TV channels from SQLite database
  */
 
+// Load environment variables
+require_once __DIR__ . '/loader.php';
+
 // Define base path untuk kompatibilitas di hosting
 $path = dirname(__FILE__);
-$db = $path . '/tv.db';
+$db = DB_FILE;
 $channels = [];
 
 try {

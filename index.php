@@ -1,4 +1,7 @@
 <?php
+// Load environment variables
+require_once __DIR__ . '/loader.php';
+
 // Define base path untuk kompatibilitas di hosting
 $path = dirname(__FILE__);
 
@@ -16,10 +19,10 @@ if (!is_array($channels)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OGIE NURDIANA</title>
-    <meta name="description" content="OGIE NURDIANA - TV Streaming Platform">
-    <link rel="icon" type="image/png" href="https://ogienurdiana.com/assets/img/male-technologist.png">
-    <link rel="icon" hreflang="en-us" href="https://ogienurdiana.com/assets/img/male-technologist.png">
+    <title><?php echo APP_NAME; ?></title>
+    <meta name="description" content="<?php echo APP_DESCRIPTION; ?>">
+    <link rel="icon" type="image/png" href="<?php echo APP_ICON; ?>">
+    <link rel="icon" hreflang="en-us" href="<?php echo APP_ICON; ?>">
     <link rel="stylesheet" href="./styles.css?v=<?php echo filemtime(__DIR__ . '/styles.css'); ?>">
     <link rel="preload" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>"></noscript>
@@ -36,7 +39,7 @@ if (!is_array($channels)) {
         <header class="header">
             <div class="header-content">
                 <div class="header-title">
-                    <h1 class="app-title">STREAMING</h1>
+                    <h1 class="app-title"><?php echo APP_TITLE; ?></h1>
                 </div>
                 <nav class="header-tabs">
                     <button class="tab-btn active" onclick="switchTab('local')" data-tab="local" tabindex="0">

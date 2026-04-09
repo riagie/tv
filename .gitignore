@@ -1,17 +1,16 @@
 # Ignore the vendor directory
 vendor/
 .htaccess
-.htaccesss
 
 # Ignore the Composer lock file
 composer.lock
 
 # dotenv environment variable files
 .env
+.env.local
+.env.production.local
 .env.development.local
 .env.test.local
-.env.production.local
-.env.local
 
 # Ignore PHP-CS-Fixer configuration file
 .php-cs-fixer.cache
@@ -19,4 +18,12 @@ composer.lock
 
 # Ignore SQLite database
 *.db
-.claude
+*.db-shm
+*.db-wal
+
+# Ignore Claude Code memory
+.claude/
+
+# Old config files
+config.php
+CONFIG_GUIDE.md
