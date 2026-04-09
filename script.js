@@ -1,5 +1,3 @@
-/* TV Streaming Player - Optimized */
-
 class Player {
     constructor() {
         this.hls = null;
@@ -503,13 +501,42 @@ class Player {
 
         try {
             const response = await fetch(apiUrl);
-            const data = await response.json();
+            const text = await response.text();
+            const data = this.decodeResponse(text);
 
             if (data.error) throw new Error(data.message);
-            this.iptv = data.channels || [];
+
+            this.iptv = data.data.map(item => {
+                const decoded = JSON.parse(atob(item.d));
+                return decoded;
+            });
+
             return this.iptv;
         } catch (error) {
             return [];
+        }
+    }
+
+    decodeResponse(encodedText) {
+        try {
+            const decoded = atob(encodedText);
+            const keyPrefix = window.APP_CONFIG?.secretKeyPrefix || 'secret_key_';
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const key = keyPrefix + year + month + day;
+
+            let result = '';
+            for (let i = 0; i < decoded.length; i++) {
+                result += String.fromCharCode(
+                    decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                );
+            }
+
+            return JSON.parse(result);
+        } catch (error) {
+            return { error: true, message: 'Failed to decode response' };
         }
     }
 

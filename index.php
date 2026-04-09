@@ -1,8 +1,6 @@
 <?php
-// Load environment variables
 require_once __DIR__ . '/loader.php';
 
-// Define base path untuk kompatibilitas di hosting
 $path = dirname(__FILE__);
 
 $channels = [];
@@ -35,7 +33,6 @@ if (!is_array($channels)) {
 </head>
 <body>
     <div class="app-container">
-        <!-- Header -->
         <header class="header">
             <div class="header-content">
                 <div class="header-title">
@@ -55,9 +52,7 @@ if (!is_array($channels)) {
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Search -->
             <div class="search-bar">
                 <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -67,7 +62,6 @@ if (!is_array($channels)) {
                 <button class="search-clear" id="searchClear" style="display: none;">✕</button>
             </div>
 
-            <!-- Channel Grid -->
             <div class="channel-list-wrapper">
                 <div class="channel-count"><span id="channelCount"><?php echo count($channels); ?></span> channel</div>
 
@@ -117,20 +111,16 @@ if (!is_array($channels)) {
                 </div>
             </div>
 
-            <!-- IPTV Channels Section (Hidden by default) -->
             <div class="iptv-section" id="iptvSection" style="display: none;">
                 <div class="iptv-loading" id="iptvLoading">
                     <div class="loading-spinner"></div>
                     <div class="loading-text">Memuat channels...</div>
                 </div>
-                <div class="iptv-channels-list" id="iptvChannelsList">
-                    <!-- Channels will be loaded here -->
-                </div>
+                <div class="iptv-channels-list" id="iptvChannelsList"></div>
             </div>
         </main>
     </div>
 
-    <!-- Player Modal -->
     <div class="player-modal" id="playerModal">
         <div class="player-modal-content">
             <div class="player-modal-header">
@@ -167,6 +157,11 @@ if (!is_array($channels)) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" defer></script>
+    <script>
+        window.APP_CONFIG = {
+            secretKeyPrefix: '<?php echo addslashes(SECRET_KEY_PREFIX); ?>'
+        };
+    </script>
     <script src="./script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>" defer></script>
 </body>
 </html>

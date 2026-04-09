@@ -1,10 +1,5 @@
 <?php
-/**
- * Load .env and define constants
- * Include this at the top of any file that needs config
- */
 
-// Load .env file
 $envFile = __DIR__ . '/.env';
 if (file_exists($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -23,7 +18,6 @@ if (file_exists($envFile)) {
     }
 }
 
-// Define constants from environment
 define('APP_NAME', getenv('APP_NAME') ?: '');
 define('APP_TITLE', getenv('APP_TITLE') ?: '');
 define('APP_DESCRIPTION', getenv('APP_DESCRIPTION') ?: '');
@@ -33,5 +27,6 @@ define('DB_FILE', getenv('DB_FILE') ? __DIR__ . '/' . getenv('DB_FILE') : __DIR_
 define('API_RATE_LIMIT', (int)(getenv('API_RATE_LIMIT') ?: 100));
 define('API_RATE_WINDOW', (int)(getenv('API_RATE_WINDOW') ?: 60));
 define('ALLOWED_ORIGINS', array_map('trim', explode(',', getenv('ALLOWED_ORIGINS') ?: '')));
+define('SECRET_KEY_PREFIX', getenv('SECRET_KEY_PREFIX') ?: '');
 define('ADMIN_ENABLED', filter_var(getenv('ADMIN_ENABLED') ?: 'true', FILTER_VALIDATE_BOOLEAN));
 define('ADMIN_PASSWORD_PROTECTED', filter_var(getenv('ADMIN_PASSWORD_PROTECTED') ?: 'false', FILTER_VALIDATE_BOOLEAN));
