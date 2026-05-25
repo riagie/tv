@@ -520,13 +520,33 @@ video, iframe {
 }
 
 /* Click hint when autoplay blocked */
-.player-loading.click-hint::after {
-    content: 'Klik untuk memutar';
+.player-loading.click-hint {
+    cursor: pointer;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.player-loading.click-hint::before {
+    content: '';
     position: absolute;
-    bottom: 30%;
-    font-size: 14px;
-    color: var(--text);
-    font-weight: 300;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(229, 229, 229, 0.1) 0%, transparent 70%);
+    animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1.2);
+        opacity: 0;
+    }
 }
 
 /* Unmute Button */

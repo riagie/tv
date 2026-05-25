@@ -215,18 +215,35 @@ class Player {
         this.modal?.classList.add('active');
         if (document.body) document.body.style.overflow = 'hidden';
 
-        this.enterFullscreen();
+        // Mark user interaction untuk autoplay
         this.interacted = true;
 
-        requestAnimationFrame(() => this.playStream(url));
+        // Enter fullscreen
+        this.enterFullscreen();
+
+        // Play stream dengan delay kecil agar UI terupdate dulu
+        requestAnimationFrame(() => {
+            setTimeout(() => this.playStream(url), 100);
+        });
     }
 
     closeModal() {
         this.modal?.classList.remove('active');
         if (document.body) document.body.style.overflow = '';
+
+        // Cleanup player resources
         this.cleanup();
+
+        // Exit fullscreen
         this.exitFullscreen();
-        if (this.index >= 0 && this.channels[this.index]) this.channels[this.index].focus();
+
+        // Return focus to the channel item
+        if (this.index >= 0 && this.channels[this.index]) {
+            this.channels[this.index].focus();
+        }
+
+        // Reset index
+        this.index = -1;
     }
 
     playPrevious() {
@@ -254,9 +271,18 @@ class Player {
         this.showLoading();
 
         try {
-            if (url.includes('.m3u8') || url.endsWith('m3u8')) {
+            // Validasi URL
+            if (!url || typeof url !== 'string') {
+                throw new Error('Invalid URL');
+            }
+
+            // Deteksi tipe stream
+            const isHls = url.includes('.m3u8') || url.endsWith('m3u8') || url.includes('m3u8?');
+            const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+
+            if (isHls) {
                 this.playHls(url);
-            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            } else if (isYouTube) {
                 this.playYouTube(url);
             } else {
                 this.playIframe(url);
@@ -267,13 +293,41 @@ class Player {
     }
 
     cleanup() {
+        // Cleanup HLS instance
         if (this.hls) {
-            this.hls.destroy();
+            try {
+                this.hls.stopLoad();
+                this.hls.detachMedia();
+                this.hls.destroy();
+            } catch (e) {
+            }
             this.hls = null;
         }
-        if (this.container) this.container.innerHTML = '';
-        const unmuteBtn = this.container?.querySelector('.unmute-button');
-        if (unmuteBtn) unmuteBtn.remove();
+
+        // Cleanup container content
+        if (this.container) {
+            // Stop video elements first
+            const videos = this.container.querySelectorAll('video');
+            videos.forEach(video => {
+                try {
+                    video.pause();
+                    video.src = '';
+                    video.load();
+                } catch (e) {
+                }
+            });
+
+            // Stop iframes
+            const iframes = this.container.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                try {
+                    iframe.src = '';
+                } catch (e) {
+                }
+            });
+
+            this.container.innerHTML = '';
+        }
     }
 
     enterFullscreen() {
@@ -314,69 +368,123 @@ class Player {
     }
 
     playHls(url) {
-        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-            this.hls = new Hls({
-                enableWorker: true,
-                lowLatencyMode: true,
-                maxBufferLength: 30,
-                maxMaxBufferLength: 60,
-                backBufferLength: 10
-            });
+        // Cek apakah Hls.js sudah terload
+        const waitForHls = (callback, maxAttempts = 50, attempts = 0) => {
+            if (typeof Hls !== 'undefined') {
+                callback();
+            } else if (attempts < maxAttempts) {
+                setTimeout(() => waitForHls(callback, maxAttempts, attempts + 1), 100);
+            } else {
+                // Hls.js tidak tersedia, coba native HLS support
+                const video = this.createVideo();
+                if (video) {
+                    video.src = url;
+                    this.attemptAutoplay(video);
+                }
+            }
+        };
 
-            this.hls.loadSource(url);
-            const video = this.createVideo();
-            if (!video) return;
+        waitForHls(() => {
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                this.cleanup();
+                this.hls = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    maxBufferLength: 30,
+                    maxMaxBufferLength: 60,
+                    backBufferLength: 10,
+                    debug: false
+                });
 
-            this.hls.attachMedia(video);
-            this.updateLoadingText('Memuat manifest...');
+                this.hls.loadSource(url);
+                const video = this.createVideo();
+                if (!video) return;
 
-            this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                this.updateLoadingText('Memulai playback...');
+                this.hls.attachMedia(video);
+                this.updateLoadingText('Memuat manifest...');
+
+                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    this.updateLoadingText('Memulai playback...');
+                    this.attemptAutoplay(video);
+                });
+
+                this.hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                this.showError('Network error. Coba lagi.');
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                this.hls.recoverMediaError();
+                                break;
+                            default:
+                                this.showError('Stream error. Coba channel lain.');
+                                break;
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari)
+                const video = this.createVideo();
+                if (!video) return;
+                video.src = url;
                 this.attemptAutoplay(video);
-            });
-
-            this.hls.on(Hls.Events.ERROR, (event, data) => {
-                if (data.fatal) this.showError('Stream error. Coba channel lain.');
-            });
-        } else {
-            const video = this.createVideo();
-            if (!video) return;
-            video.src = url;
-            this.attemptAutoplay(video);
-        }
+            } else {
+                this.showError('Browser tidak mendukung HLS. Gunakan browser modern.');
+            }
+        });
     }
 
     attemptAutoplay(video) {
-        video.play().then(() => {
-            this.hideLoading();
-        }).catch(() => {
-            video.muted = true;
-            video.play().then(() => {
-                this.showUnmuteButton(video);
-                this.hideLoading();
-            }).catch(() => {
-                const loadingDiv = this.container?.querySelector('.player-loading');
-                if (loadingDiv) {
-                    loadingDiv.classList.add('click-hint');
-                    this.updateLoadingText('Klik video untuk memutar');
-                    loadingDiv.addEventListener('click', () => {
-                        video.muted = false;
-                        video.play().then(() => {
-                            this.hideLoading();
-                            loadingDiv.classList.remove('click-hint');
-                        });
-                    }, { once: true });
-                }
-            });
-        });
+        // Set default muted untuk mengatasi autoplay policy
+        video.muted = true;
+
+        const playPromise = video.play();
+
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    this.hideLoading();
+                    // Tampilkan tombol unmute jika video berhasil diputar dengan muted
+                    this.showUnmuteButton(video);
+                })
+                .catch(error => {
+                    // Autoplay benar-benar diblokir, perlu interaksi user
+                    const loadingDiv = this.container?.querySelector('.player-loading');
+                    if (loadingDiv) {
+                        loadingDiv.classList.add('click-hint');
+                        this.updateLoadingText('Klik untuk memutar');
+                        loadingDiv.style.cursor = 'pointer';
+                        loadingDiv.addEventListener('click', () => {
+                            video.muted = false;
+                            video.play()
+                                .then(() => {
+                                    this.hideLoading();
+                                    loadingDiv.classList.remove('click-hint');
+                                })
+                                .catch(e => {
+                                    this.showError('Gagal memutar video. Coba channel lain.');
+                                });
+                        }, { once: true });
+                    }
+                });
+        }
     }
 
     showUnmuteButton(video) {
         if (!this.container || this.container.querySelector('.unmute-button')) return;
 
+        // Hapus loading spinner dulu jika ada
+        const loadingDiv = this.container?.querySelector('.player-loading');
+        if (loadingDiv && loadingDiv.parentNode === this.container) {
+            loadingDiv.remove();
+        }
+
         const unmuteBtn = document.createElement('button');
         unmuteBtn.className = 'unmute-button';
         unmuteBtn.innerHTML = '🔊 Klik untuk suara';
+        unmuteBtn.type = 'button';
+        unmuteBtn.setAttribute('aria-label', 'Unmute video');
         unmuteBtn.style.cssText = `
             position: absolute;
             bottom: 20px;
@@ -390,12 +498,22 @@ class Player {
             font-weight: 600;
             cursor: pointer;
             z-index: 10;
+            transition: opacity 0.3s ease;
         `;
 
         unmuteBtn.addEventListener('click', () => {
             video.muted = false;
-            unmuteBtn.remove();
+            unmuteBtn.style.opacity = '0';
+            setTimeout(() => unmuteBtn.remove(), 300);
         });
+
+        // Auto-hide setelah 5 detik
+        setTimeout(() => {
+            if (unmuteBtn.parentNode) {
+                unmuteBtn.style.opacity = '0';
+                setTimeout(() => unmuteBtn.remove(), 300);
+            }
+        }, 5000);
 
         this.container.appendChild(unmuteBtn);
     }
@@ -443,16 +561,31 @@ class Player {
         const video = document.createElement('video');
 
         video.autoplay = true;
-        video.muted = false;
+        video.muted = true; // Default muted untuk autoplay policy
         video.playsInline = true;
         video.controls = true;
         video.setAttribute('webkit-playsinline', 'webkit-playsinline');
         video.setAttribute('x-webkit-airplay', 'allow');
         video.style.cssText = 'width:100%;height:100%;background:#000';
 
-        video.addEventListener('canplay', () => this.hideLoading());
-        video.addEventListener('playing', () => this.hideLoading());
-        video.addEventListener('error', () => this.showError('Gagal memuat video. Coba channel lain.'));
+        // Error handling yang lebih baik
+        video.addEventListener('canplay', () => {
+            this.hideLoading();
+        });
+
+        video.addEventListener('playing', () => {
+            this.hideLoading();
+        });
+
+        video.addEventListener('error', (e) => {
+            this.showError('Gagal memuat video. Coba channel lain.');
+        });
+
+        video.addEventListener('stalled', () => {
+        });
+
+        video.addEventListener('waiting', () => {
+        });
 
         this.container.appendChild(video);
         return video;
@@ -464,16 +597,23 @@ class Player {
         this.container.innerHTML = '';
         const iframe = document.createElement('iframe');
 
-        iframe.allow = 'autoplay; fullscreen; playsinline; encrypted-media';
+        // Gunakan allowfullscreen
         iframe.allowFullscreen = true;
         iframe.setAttribute('webkitallowfullscreen', 'true');
         iframe.setAttribute('mozallowfullscreen', 'true');
-        iframe.setAttribute('allowfullscreen', 'true');
-        iframe.sandbox = 'allow-scripts allow-presentation allow-forms';
+        iframe.referrerPolicy = 'origin';
+
+        // Tambahkan allow-same-origin agar detik.com analytics bisa bekerja
+        // Detik.com adalah trusted source untuk streaming TV Indonesia
+        iframe.sandbox = 'allow-scripts allow-presentation allow-forms allow-same-origin';
         iframe.style.cssText = 'width:100%;height:100%;border:none';
 
         iframe.addEventListener('load', () => {
             setTimeout(() => this.hideLoading(), 2000);
+        });
+
+        iframe.addEventListener('error', () => {
+            this.showError('Gagal memuat player. Coba channel lain.');
         });
 
         this.container.appendChild(iframe);
@@ -553,20 +693,33 @@ class Player {
                 </div>
             `;
             if (this.count) this.count.textContent = '0';
+            this.channels = [];
             return;
         }
 
-        this.local.forEach(ch => this.list.appendChild(ch.cloneNode(true)));
+        // Clone dan append channel items
+        this.local.forEach((ch, index) => {
+            const clone = ch.cloneNode(true);
+            // Store original index for event handlers
+            clone.dataset.originalIndex = index;
+            this.list.appendChild(clone);
+        });
 
+        // Get channels dan attach event listeners
         const channels = Array.from(this.list.querySelectorAll('.channel-item'));
-        channels.forEach((channel, index) => {
+        channels.forEach((channel) => {
+            const index = parseInt(channel.dataset.originalIndex || '0', 10);
+
             channel.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.openChannel(index);
             });
+
             channel.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.openChannel(index);
                 }
             });
@@ -589,8 +742,12 @@ class Player {
                 </div>
             `;
             if (this.count) this.count.textContent = '0';
+            this.channels = [];
             return;
         }
+
+        // Use document fragment for better performance
+        const fragment = document.createDocumentFragment();
 
         channels.forEach((channel, index) => {
             const item = document.createElement('div');
@@ -600,13 +757,18 @@ class Player {
             item.dataset.index = index;
             item.tabIndex = 0;
 
+            // Safe HTML escaping
+            const safeChannel = this.escapeHtml(channel.channel || 'Unknown');
+            const safeCategory = this.escapeHtml(channel.categories || channel.country || 'General');
+            const safeLogo = this.escapeHtml(channel.logo || '');
+
             item.innerHTML = `
                 <div class="channel-thumb">
-                    <img src="${channel.logo}" alt="${channel.channel}" loading="lazy" onerror="this.outerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23888\\' stroke-width=\\'2\\' style=\\'width:32px;height:32px;\\'><rect x=\\'2\\' y=\\'7\\' width=\\'20\\' height=\\'15\\' rx=\\'2\\' ry=\\'2\\'></rect><polyline points=\\'17 2 12 7 7 2\\'></polyline></svg>'">
+                    <img src="${safeLogo}" alt="${safeChannel}" loading="lazy" onerror="this.outerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%23888\\' stroke-width=\\'2\\' style=\\'width:32px;height:32px;\\'><rect x=\\'2\\' y=\\'7\\' width=\\'20\\' height=\\'15\\' rx=\\'2\\' ry=\\'2\\'></rect><polyline points=\\'17 2 12 7 7 2\\'></polyline></svg>'">
                 </div>
                 <div class="channel-details">
-                    <div class="channel-name">${channel.channel}</div>
-                    <div class="channel-category">${channel.categories || channel.country || 'General'}</div>
+                    <div class="channel-name">${safeChannel}</div>
+                    <div class="channel-category">${safeCategory}</div>
                 </div>
                 <div class="channel-play">
                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -617,21 +779,30 @@ class Player {
 
             item.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 this.openChannel(index);
             });
 
             item.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.openChannel(index);
                 }
             });
 
-            this.list.appendChild(item);
+            fragment.appendChild(item);
         });
 
+        this.list.appendChild(fragment);
         this.channels = Array.from(this.list.querySelectorAll('.channel-item'));
         if (this.count) this.count.textContent = channels.length;
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     playIptvChannel(channel) {
@@ -643,6 +814,49 @@ class Player {
 
 const player = new Player();
 window.player = player;
+
+// Global error handling untuk debug (hanya application error)
+const filterKeywords = [
+    'XrayWrapper',
+    'NS_BINDING_ABORTED',
+    'Not allowed to define cross-origin',
+    '_pk_testcookie_domain',
+    '_pk_ref',
+    '_pk_id',
+    '_pk_ses',
+    'tam.js',
+    'doubleclick.net',
+    'securepubads',
+    'ima_ppub_config',
+    'detik.com',
+    'livestreaming-',
+    'gtm.js',
+    'detikvideo.core.js',
+    'detikbigdata',
+    'detikliveusercounter',
+    'AdsLoader error',
+    'No Ads VAST'
+];
+
+function shouldFilterError(message) {
+    const msgStr = (message || '').toLowerCase();
+    return filterKeywords.some(keyword => msgStr.toLowerCase().includes(keyword.toLowerCase()));
+}
+
+window.addEventListener('error', (event) => {
+    const message = event.message || '';
+    const source = event.filename || '';
+
+    if (shouldFilterError(message) || shouldFilterError(source)) {
+        event.preventDefault();
+        return;
+    }
+
+    // Log application errors only
+}, true);
+
+window.addEventListener('unhandledrejection', (event) => {
+});
 
 async function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(btn => {

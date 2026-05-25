@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/loader.php';
 
+// Set security headers
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+
 $path = dirname(__FILE__);
 
 $channels = [];
@@ -19,8 +25,96 @@ if (!is_array($channels)) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo APP_NAME; ?></title>
     <meta name="description" content="<?php echo APP_DESCRIPTION; ?>">
-    <link rel="icon" type="image/png" href="<?php echo APP_ICON; ?>">
-    <link rel="icon" hreflang="en-us" href="<?php echo APP_ICON; ?>">
+
+    <!-- Error filter untuk extension, favicon, dan third-party errors -->
+    <script>
+        (function() {
+            // Keywords untuk filter
+            const filterKeywords = [
+                'xraywrapper', 'ns_binding_aborted', 'not allowed to define cross-origin',
+                'male-technologist.png', 'favicon',
+                '_pk_testcookie_domain', '_pk_ref', '_pk_id', '_pk_ses',
+                'tam.js', 'thetracker-detik',
+                'doubleclick.net', 'securepubads', 'ima_ppub_config',
+                'cookie.*has been rejected', 'cross-site context', 'same site',
+                'detik.com', 'livestreaming-',
+                'gtm.js', 'detikvideo.core.js', 'detikbigdata', 'detikliveusercounter',
+                'impression:v7', 'adsloader error', 'no ads vast',
+                'can\'t write cookie', 'iframe loaded successfully',
+                'securityerror: failed to read', 'cookie\' property from \'document\'',
+                'allow-same-origin', 'escape.*sandboxing',
+                'cannot read properties of undefined', 'typeerror: $ is not a function',
+                'uncaught typeerror', 'uncaught securityerror'
+            ];
+
+            // Source files untuk filter (iframe dari detik.com)
+            const filterSources = [
+                '20.detik.com', 'detik.com',
+                'gtm.js', 'tam.js', 'detikvideo', 'detikbigdata',
+                'detikliveusercounter', 'videojs.', 'monolib',
+                'livestreaming-', 'impression:v7'
+            ];
+
+            function shouldFilter(message) {
+                const msgStr = (message || '').toLowerCase();
+                return filterKeywords.some(keyword => msgStr.includes(keyword.toLowerCase()));
+            }
+
+            function shouldFilterSource(source) {
+                const srcStr = (source || '').toLowerCase();
+                return filterSources.some(keyword => srcStr.includes(keyword.toLowerCase()));
+            }
+
+            // Override window.onerror untuk filter global errors
+            window.onerror = function(message, source, lineno, colno, error) {
+                const msgStr = (message || '').toLowerCase();
+                const srcStr = (source || '').toLowerCase();
+                if (shouldFilter(msgStr) || shouldFilterSource(srcStr)) {
+                    return true; // Prevent error from showing in console
+                }
+                return false; // Let default error handler work
+            };
+
+            // Filter unhandled promise rejections
+            window.addEventListener('unhandledrejection', function(event) {
+                const reason = event.reason?.toString() || '';
+                const reasonStr = reason.toLowerCase();
+                if (shouldFilter(reasonStr)) {
+                    event.preventDefault();
+                }
+            });
+        })();
+    </script>
+
+    <!-- Favicon - gunakan APP_ICON sebagai data URI atau fallback emoji -->
+    <?php
+    $faviconData = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>";
+
+    // Coba dapatkan icon dari APP_ICON dan convert ke data URI
+    if (!empty(APP_ICON) && filter_var(APP_ICON, FILTER_VALIDATE_URL)) {
+        $iconPath = __DIR__ . '/favicon.png';
+        // Jika icon lokal belum ada, coba download sekali saja
+        if (!file_exists($iconPath)) {
+            try {
+                $iconData = @file_get_contents(APP_ICON, false, stream_context_create([
+                    'http' => ['timeout' => 5],
+                    'https' => ['timeout' => 5]
+                ]));
+                if ($iconData !== false) {
+                    file_put_contents($iconPath, $iconData);
+                }
+            } catch (Exception $e) {
+                // Silent fail, gunakan fallback
+            }
+        }
+
+        // Gunakan icon lokal jika ada
+        if (file_exists($iconPath)) {
+            $faviconData = './favicon.png?v=' . filemtime($iconPath);
+        }
+    }
+    ?>
+    <link rel="icon" href="<?php echo $faviconData; ?>">
     <link rel="stylesheet" href="./styles.css?v=<?php echo filemtime(__DIR__ . '/styles.css'); ?>">
     <link rel="preload" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="./layout.css?v=<?php echo filemtime(__DIR__ . '/layout.css'); ?>"></noscript>
@@ -156,12 +250,13 @@ if (!is_array($channels)) {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest" defer></script>
     <script>
         window.APP_CONFIG = {
-            secretKeyPrefix: '<?php echo addslashes(SECRET_KEY_PREFIX); ?>'
+            secretKeyPrefix: '<?php echo addslashes(SECRET_KEY_PREFIX); ?>',
+            appIcon: '<?php echo addslashes(APP_ICON); ?>'
         };
     </script>
-    <script src="./script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="./script.js?v=<?php echo filemtime(__DIR__ . '/script.js'); ?>"></script>
 </body>
 </html>
