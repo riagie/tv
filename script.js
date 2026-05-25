@@ -276,9 +276,11 @@ class Player {
                 throw new Error('Invalid URL');
             }
 
+
             // Deteksi tipe stream
             const isHls = url.includes('.m3u8') || url.endsWith('m3u8') || url.includes('m3u8?');
             const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+
 
             if (isHls) {
                 this.playHls(url);
@@ -521,7 +523,7 @@ class Player {
     playYouTube(url) {
         this.updateLoadingText('Memuat YouTube...');
 
-        const iframe = this.createIframe();
+        const iframe = this.createIframe(url);
         if (!iframe) return;
 
         let embedUrl = url;
@@ -540,18 +542,34 @@ class Player {
     playIframe(url) {
         this.updateLoadingText('Memuat player...');
 
-        const iframe = this.createIframe();
-        if (!iframe) return;
+        const iframe = this.createIframe(url);
+        if (!iframe) {
+            this.showError('Gagal membuat player. Coba channel lain.');
+            return;
+        }
 
         const separator = url.includes('?') ? '&' : '?';
-        iframe.src = `${url}${separator}autoplay=1&playsinline=1&mute=0`;
+        // Try unmuted autoplay first - will fall back to muted if blocked by browser policy
+        const finalUrl = `${url}${separator}autoplay=1&playsinline=1&mute=0&unmute=1`;
 
-        setTimeout(() => this.hideLoading(), 3000);
+        iframe.src = finalUrl;
 
-        iframe.addEventListener('load', () => {});
-        window.addEventListener('error', (e) => {
-            if (e.target === iframe || e.target === window) e.preventDefault();
-        }, true);
+        // Hide loading after longer timeout for detik streams
+        const loadTimeout = setTimeout(() => {
+            this.hideLoading();
+        }, 8000);
+
+        iframe.addEventListener('load', () => {
+            clearTimeout(loadTimeout);
+            // Give more time for video player to initialize
+            setTimeout(() => {
+                this.hideLoading();
+            }, 4000);
+        });
+
+        iframe.addEventListener('error', () => {
+            this.showError('Gagal memuat player. Coba channel lain.');
+        });
     }
 
     createVideo() {
@@ -591,10 +609,13 @@ class Player {
         return video;
     }
 
-    createIframe() {
+    createIframe(url = '') {
         if (!this.container) return null;
 
+        // Clear container but preserve loading indicator if it exists
+        const loadingDiv = this.container.querySelector('.player-loading');
         this.container.innerHTML = '';
+
         const iframe = document.createElement('iframe');
 
         // Gunakan allowfullscreen
@@ -603,10 +624,21 @@ class Player {
         iframe.setAttribute('mozallowfullscreen', 'true');
         iframe.referrerPolicy = 'origin';
 
-        // Tambahkan allow-same-origin agar detik.com analytics bisa bekerja
-        // Detik.com adalah trusted source untuk streaming TV Indonesia
-        iframe.sandbox = 'allow-scripts allow-presentation allow-forms allow-same-origin';
+        // Apply sandbox only to non-detik URLs (trusted source)
+        // detik.com player requires allow-same-origin for analytics/video initialization
+        const isDetikUrl = url.includes('detik.com');
+        if (isDetikUrl) {
+            // Add unmuted-autoplay permission for autoplay with sound
+            iframe.allow = 'autoplay; fullscreen; picture-in-picture; unmuted-autoplay';
+        } else {
+            iframe.sandbox = 'allow-scripts allow-presentation allow-forms';
+        }
         iframe.style.cssText = 'width:100%;height:100%;border:none';
+
+        // Re-add loading indicator if it was present
+        if (loadingDiv) {
+            this.container.appendChild(loadingDiv.cloneNode(true));
+        }
 
         iframe.addEventListener('load', () => {
             setTimeout(() => this.hideLoading(), 2000);

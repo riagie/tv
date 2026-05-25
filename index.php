@@ -64,15 +64,15 @@ if (!is_array($channels)) {
                 const srcStr = (source || '').toLowerCase();
                 return filterSources.some(keyword => srcStr.includes(keyword.toLowerCase()));
             }
-
+            
             // Override window.onerror untuk filter global errors
             window.onerror = function(message, source, lineno, colno, error) {
                 const msgStr = (message || '').toLowerCase();
                 const srcStr = (source || '').toLowerCase();
                 if (shouldFilter(msgStr) || shouldFilterSource(srcStr)) {
-                    return true; // Prevent error from showing in console
+                    return true;
                 }
-                return false; // Let default error handler work
+                return false;
             };
 
             // Filter unhandled promise rejections
