@@ -211,7 +211,8 @@ try {
 
 function encodeResponse($data) {
     $json = json_encode($data);
-    $key = SECRET_KEY_PREFIX . date('Ymd');
+    $dateKey = gmdate('Ymd'); // UTC date for key
+    $key = SECRET_KEY_PREFIX . $dateKey;
     $encoded = '';
     $keyLen = strlen($key);
 
@@ -219,5 +220,9 @@ function encodeResponse($data) {
         $encoded .= chr(ord($json[$i]) ^ ord($key[$i % $keyLen]));
     }
 
-    return base64_encode($encoded);
+    $response = base64_encode($encoded);
+
+    header('X-Date-Key: ' . $dateKey);
+
+    return $response;
 }

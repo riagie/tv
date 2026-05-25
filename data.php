@@ -43,7 +43,6 @@ try {
     $channels = $stmt->fetchAll();
 
 } catch (PDOException $e) {
-    // If all fails, return empty array
     $channels = [];
 }
 

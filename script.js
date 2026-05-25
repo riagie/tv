@@ -215,13 +215,9 @@ class Player {
         this.modal?.classList.add('active');
         if (document.body) document.body.style.overflow = 'hidden';
 
-        // Mark user interaction untuk autoplay
         this.interacted = true;
-
-        // Enter fullscreen
         this.enterFullscreen();
 
-        // Play stream dengan delay kecil agar UI terupdate dulu
         requestAnimationFrame(() => {
             setTimeout(() => this.playStream(url), 100);
         });
@@ -231,18 +227,13 @@ class Player {
         this.modal?.classList.remove('active');
         if (document.body) document.body.style.overflow = '';
 
-        // Cleanup player resources
         this.cleanup();
-
-        // Exit fullscreen
         this.exitFullscreen();
 
-        // Return focus to the channel item
         if (this.index >= 0 && this.channels[this.index]) {
             this.channels[this.index].focus();
         }
 
-        // Reset index
         this.index = -1;
     }
 
@@ -271,16 +262,12 @@ class Player {
         this.showLoading();
 
         try {
-            // Validasi URL
             if (!url || typeof url !== 'string') {
                 throw new Error('Invalid URL');
             }
 
-
-            // Deteksi tipe stream
             const isHls = url.includes('.m3u8') || url.endsWith('m3u8') || url.includes('m3u8?');
             const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
-
 
             if (isHls) {
                 this.playHls(url);
@@ -295,37 +282,30 @@ class Player {
     }
 
     cleanup() {
-        // Cleanup HLS instance
         if (this.hls) {
             try {
                 this.hls.stopLoad();
                 this.hls.detachMedia();
                 this.hls.destroy();
-            } catch (e) {
-            }
+            } catch (e) {}
             this.hls = null;
         }
 
-        // Cleanup container content
         if (this.container) {
-            // Stop video elements first
             const videos = this.container.querySelectorAll('video');
             videos.forEach(video => {
                 try {
                     video.pause();
                     video.src = '';
                     video.load();
-                } catch (e) {
-                }
+                } catch (e) {}
             });
 
-            // Stop iframes
             const iframes = this.container.querySelectorAll('iframe');
             iframes.forEach(iframe => {
                 try {
                     iframe.src = '';
-                } catch (e) {
-                }
+                } catch (e) {}
             });
 
             this.container.innerHTML = '';
@@ -370,14 +350,12 @@ class Player {
     }
 
     playHls(url) {
-        // Cek apakah Hls.js sudah terload
         const waitForHls = (callback, maxAttempts = 50, attempts = 0) => {
             if (typeof Hls !== 'undefined') {
                 callback();
             } else if (attempts < maxAttempts) {
                 setTimeout(() => waitForHls(callback, maxAttempts, attempts + 1), 100);
             } else {
-                // Hls.js tidak tersedia, coba native HLS support
                 const video = this.createVideo();
                 if (video) {
                     video.src = url;
@@ -426,7 +404,6 @@ class Player {
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native HLS support (Safari)
                 const video = this.createVideo();
                 if (!video) return;
                 video.src = url;
@@ -438,7 +415,6 @@ class Player {
     }
 
     attemptAutoplay(video) {
-        // Set default muted untuk mengatasi autoplay policy
         video.muted = true;
 
         const playPromise = video.play();
@@ -447,11 +423,9 @@ class Player {
             playPromise
                 .then(() => {
                     this.hideLoading();
-                    // Tampilkan tombol unmute jika video berhasil diputar dengan muted
                     this.showUnmuteButton(video);
                 })
                 .catch(error => {
-                    // Autoplay benar-benar diblokir, perlu interaksi user
                     const loadingDiv = this.container?.querySelector('.player-loading');
                     if (loadingDiv) {
                         loadingDiv.classList.add('click-hint');
@@ -476,7 +450,6 @@ class Player {
     showUnmuteButton(video) {
         if (!this.container || this.container.querySelector('.unmute-button')) return;
 
-        // Hapus loading spinner dulu jika ada
         const loadingDiv = this.container?.querySelector('.player-loading');
         if (loadingDiv && loadingDiv.parentNode === this.container) {
             loadingDiv.remove();
@@ -509,7 +482,6 @@ class Player {
             setTimeout(() => unmuteBtn.remove(), 300);
         });
 
-        // Auto-hide setelah 5 detik
         setTimeout(() => {
             if (unmuteBtn.parentNode) {
                 unmuteBtn.style.opacity = '0';
@@ -549,19 +521,16 @@ class Player {
         }
 
         const separator = url.includes('?') ? '&' : '?';
-        // Try unmuted autoplay first - will fall back to muted if blocked by browser policy
         const finalUrl = `${url}${separator}autoplay=1&playsinline=1&mute=0&unmute=1`;
 
         iframe.src = finalUrl;
 
-        // Hide loading after longer timeout for detik streams
         const loadTimeout = setTimeout(() => {
             this.hideLoading();
         }, 8000);
 
         iframe.addEventListener('load', () => {
             clearTimeout(loadTimeout);
-            // Give more time for video player to initialize
             setTimeout(() => {
                 this.hideLoading();
             }, 4000);
@@ -579,14 +548,13 @@ class Player {
         const video = document.createElement('video');
 
         video.autoplay = true;
-        video.muted = true; // Default muted untuk autoplay policy
+        video.muted = true;
         video.playsInline = true;
         video.controls = true;
         video.setAttribute('webkit-playsinline', 'webkit-playsinline');
         video.setAttribute('x-webkit-airplay', 'allow');
         video.style.cssText = 'width:100%;height:100%;background:#000';
 
-        // Error handling yang lebih baik
         video.addEventListener('canplay', () => {
             this.hideLoading();
         });
@@ -599,12 +567,6 @@ class Player {
             this.showError('Gagal memuat video. Coba channel lain.');
         });
 
-        video.addEventListener('stalled', () => {
-        });
-
-        video.addEventListener('waiting', () => {
-        });
-
         this.container.appendChild(video);
         return video;
     }
@@ -612,30 +574,24 @@ class Player {
     createIframe(url = '') {
         if (!this.container) return null;
 
-        // Clear container but preserve loading indicator if it exists
         const loadingDiv = this.container.querySelector('.player-loading');
         this.container.innerHTML = '';
 
         const iframe = document.createElement('iframe');
 
-        // Gunakan allowfullscreen
         iframe.allowFullscreen = true;
         iframe.setAttribute('webkitallowfullscreen', 'true');
         iframe.setAttribute('mozallowfullscreen', 'true');
         iframe.referrerPolicy = 'origin';
 
-        // Apply sandbox only to non-detik URLs (trusted source)
-        // detik.com player requires allow-same-origin for analytics/video initialization
         const isDetikUrl = url.includes('detik.com');
         if (isDetikUrl) {
-            // Add unmuted-autoplay permission for autoplay with sound
             iframe.allow = 'autoplay; fullscreen; picture-in-picture; unmuted-autoplay';
         } else {
             iframe.sandbox = 'allow-scripts allow-presentation allow-forms';
         }
         iframe.style.cssText = 'width:100%;height:100%;border:none';
 
-        // Re-add loading indicator if it was present
         if (loadingDiv) {
             this.container.appendChild(loadingDiv.cloneNode(true));
         }
@@ -673,10 +629,27 @@ class Player {
 
         try {
             const response = await fetch(apiUrl);
-            const text = await response.text();
-            const data = this.decodeResponse(text);
+            const dateKey = response.headers.get('X-Date-Key');
 
-            if (data.error) throw new Error(data.message);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const text = await response.text();
+
+            if (!text) {
+                throw new Error('Empty response from API');
+            }
+
+            const data = this.decodeResponse(text, dateKey);
+
+            if (data.error) {
+                throw new Error(data.message || 'API returned error');
+            }
+
+            if (!data.data || !Array.isArray(data.data)) {
+                throw new Error('Invalid data format from API');
+            }
 
             this.iptv = data.data.map(item => {
                 const decoded = JSON.parse(atob(item.d));
@@ -689,15 +662,23 @@ class Player {
         }
     }
 
-    decodeResponse(encodedText) {
+    decodeResponse(encodedText, serverDateKey) {
         try {
             const decoded = atob(encodedText);
             const keyPrefix = window.APP_CONFIG?.secretKeyPrefix || 'secret_key_';
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const key = keyPrefix + year + month + day;
+
+            let dateKey;
+            if (serverDateKey) {
+                dateKey = serverDateKey;
+            } else {
+                const now = new Date();
+                const year = now.getUTCFullYear();
+                const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(now.getUTCDate()).padStart(2, '0');
+                dateKey = `${year}${month}${day}`;
+            }
+
+            const key = keyPrefix + dateKey;
 
             let result = '';
             for (let i = 0; i < decoded.length; i++) {
@@ -708,7 +689,7 @@ class Player {
 
             return JSON.parse(result);
         } catch (error) {
-            return { error: true, message: 'Failed to decode response' };
+            return { error: true, message: 'Failed to decode response: ' + error.message };
         }
     }
 
@@ -729,15 +710,12 @@ class Player {
             return;
         }
 
-        // Clone dan append channel items
         this.local.forEach((ch, index) => {
             const clone = ch.cloneNode(true);
-            // Store original index for event handlers
             clone.dataset.originalIndex = index;
             this.list.appendChild(clone);
         });
 
-        // Get channels dan attach event listeners
         const channels = Array.from(this.list.querySelectorAll('.channel-item'));
         channels.forEach((channel) => {
             const index = parseInt(channel.dataset.originalIndex || '0', 10);
@@ -778,7 +756,6 @@ class Player {
             return;
         }
 
-        // Use document fragment for better performance
         const fragment = document.createDocumentFragment();
 
         channels.forEach((channel, index) => {
@@ -789,7 +766,6 @@ class Player {
             item.dataset.index = index;
             item.tabIndex = 0;
 
-            // Safe HTML escaping
             const safeChannel = this.escapeHtml(channel.channel || 'Unknown');
             const safeCategory = this.escapeHtml(channel.categories || channel.country || 'General');
             const safeLogo = this.escapeHtml(channel.logo || '');
@@ -841,13 +817,11 @@ class Player {
         const index = this.channels.findIndex(ch => ch.dataset.url === channel.url);
         if (index >= 0) this.openChannel(index);
     }
-
 }
 
 const player = new Player();
 window.player = player;
 
-// Global error handling untuk debug (hanya application error)
 const filterKeywords = [
     'XrayWrapper',
     'NS_BINDING_ABORTED',
@@ -883,12 +857,9 @@ window.addEventListener('error', (event) => {
         event.preventDefault();
         return;
     }
-
-    // Log application errors only
 }, true);
 
-window.addEventListener('unhandledrejection', (event) => {
-});
+window.addEventListener('unhandledrejection', (event) => {});
 
 async function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(btn => {
