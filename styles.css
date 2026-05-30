@@ -255,7 +255,6 @@ button:focus-visible {
 }
 
 .channel-thumb {
-    width: 48px;
     height: 48px;
     display: flex;
     align-items: center;

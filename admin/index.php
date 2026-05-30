@@ -23,14 +23,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'add') {
             $stmt = $pdo->prepare("
-                INSERT INTO channels (name, url, image, category)
-                VALUES (:name, :url, :image, :category)
+                INSERT INTO channels (name, url, image, category, status)
+                VALUES (:name, :url, :image, :category, :status)
             ");
             $stmt->execute([
                 ':name' => $_POST['name'],
                 ':url' => $_POST['url'],
                 ':image' => $_POST['image'],
-                ':category' => $_POST['category']
+                ':category' => $_POST['category'],
+                ':status' => isset($_POST['status']) ? 1 : 0
             ]);
             $message = '✅ Channel berhasil ditambahkan!';
 
@@ -39,10 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([':id' => $_POST['id']]);
             $message = '✅ Channel berhasil dihapus!';
 
+        } elseif ($action === 'toggle_status') {
+            $stmt = $pdo->prepare("UPDATE channels SET status = :status WHERE id = :id");
+            $stmt->execute([
+                ':id' => $_POST['id'],
+                ':status' => $_POST['status']
+            ]);
+            echo json_encode(['success' => true]);
+            exit;
+
         } elseif ($action === 'update') {
             $stmt = $pdo->prepare("
                 UPDATE channels
-                SET name = :name, url = :url, image = :image, category = :category
+                SET name = :name, url = :url, image = :image, category = :category, status = :status
                 WHERE id = :id
             ");
             $stmt->execute([
@@ -50,7 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ':name' => $_POST['name'],
                 ':url' => $_POST['url'],
                 ':image' => $_POST['image'],
-                ':category' => $_POST['category']
+                ':category' => $_POST['category'],
+                ':status' => isset($_POST['status']) ? 1 : 0
             ]);
             $message = '✅ Channel berhasil diupdate!';
         }
@@ -371,6 +382,25 @@ try {
             letter-spacing: 0.5px;
         }
 
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 2px;
+        }
+
+        .status-badge.active {
+            background: #0a4d0a;
+            color: #4ade80;
+        }
+
+        .status-badge.inactive {
+            background: #1a1a1a;
+            color: #6b6b6b;
+        }
+
         .actions {
             display: flex;
             gap: 4px;
@@ -470,6 +500,13 @@ try {
                             <option value="general">General</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                            <input type="checkbox" id="status" name="status" value="1" checked style="width: 18px; height: 18px;">
+                            <span style="font-size: 11px; color: #6b6b6b;">Aktif (tampilkan di Favorites)</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-row" style="margin-top: 12px;">
                     <button type="submit" class="btn btn-primary" id="submitBtn">Tambah</button>
@@ -485,6 +522,7 @@ try {
                     <th width="60">Logo</th>
                     <th>Nama</th>
                     <th width="100">Kategori</th>
+                    <th width="80">Status</th>
                     <th>URL</th>
                     <th width="80">Aksi</th>
                 </tr>
@@ -493,6 +531,7 @@ try {
                 <?php
                 $rowIndex = 0;
                 foreach ($channels as $channel):
+                    $channelStatus = isset($channel['status']) ? (int)$channel['status'] : 1;
                 ?>
                 <tr data-index="<?php echo $rowIndex++; ?>">
                     <td>
@@ -508,6 +547,11 @@ try {
                         </span>
                     </td>
                     <td>
+                        <span class="status-badge <?php echo $channelStatus ? 'active' : 'inactive'; ?>">
+                            <?php echo $channelStatus ? 'Aktif' : 'Nonaktif'; ?>
+                        </span>
+                    </td>
+                    <td>
                         <a href="<?php echo htmlspecialchars($channel['url']); ?>"
                            target="_blank"
                            class="link-url">
@@ -517,8 +561,13 @@ try {
                     <td>
                         <div class="actions">
                             <button type="button"
+                                    class="btn btn-small"
+                                    onclick="toggleStatus(<?php echo $channel['id']; ?>, <?php echo $channelStatus ? '0' : '1'; ?>, this)">
+                                <?php echo $channelStatus ? 'Nonaktifkan' : 'Aktifkan'; ?>
+                            </button>
+                            <button type="button"
                                     class="btn btn-edit"
-                                    onclick="editChannel(<?php echo $channel['id']; ?>, '<?php echo htmlspecialchars($channel['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($channel['url'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($channel['image'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($channel['category'], ENT_QUOTES); ?>')">
+                                    onclick="editChannel(<?php echo $channel['id']; ?>, '<?php echo htmlspecialchars($channel['name'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($channel['url'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($channel['image'], ENT_QUOTES); ?>', '<?php echo htmlspecialchars($channel['category'], ENT_QUOTES); ?>', <?php echo $channelStatus; ?>)">
                                 Edit
                             </button>
                             <form method="POST" class="deleteForm" data-id="<?php echo htmlspecialchars($channel['name']); ?>">
@@ -539,14 +588,36 @@ try {
     </div>
 
     <script>
+        // Toggle Status Function
+        function toggleStatus(id, newStatus, button) {
+            const formData = new FormData();
+            formData.append('action', 'toggle_status');
+            formData.append('id', id);
+            formData.append('status', newStatus);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(() => {
+                // Reload page to show updated status
+                window.location.reload();
+            })
+            .catch(error => {
+                alert('Gagal mengupdate status');
+            });
+        }
+
         // Edit Channel Function
-        function editChannel(id, name, url, image, category) {
+        function editChannel(id, name, url, image, category, status) {
             // Populate form with channel data
             document.getElementById('channelId').value = id;
             document.getElementById('name').value = name;
             document.getElementById('url').value = url;
             document.getElementById('image').value = image;
             document.getElementById('category').value = category;
+            document.getElementById('status').checked = status === 1;
 
             // Change form mode to update
             document.querySelector('input[name="action"]').value = 'update';

@@ -112,10 +112,11 @@ try {
     $pdo->exec('PRAGMA temp_store = MEMORY');
     $pdo->exec('PRAGMA mmap_size = 268435456');
 
+    // Count total channels
     $stmt = $pdo->query("SELECT COUNT(*) FROM iptv_channels");
-    $count = $stmt->fetchColumn();
+    $totalChannels = $stmt->fetchColumn();
 
-    if ($count == 0) {
+    if ($totalChannels == 0) {
         $response = [
             'error' => true,
             'message' => 'No channels available',
@@ -126,56 +127,123 @@ try {
         exit;
     }
 
+    // Build query based on type
     if ($type === 'indonesia') {
         $sql = "
-            SELECT id, channel, url, country, language, categories,
-                   COALESCE(logo_base64, logo) as logo
-            FROM iptv_channels
-            WHERE country = 'ID'
+            SELECT
+                c.id,
+                c.name as channel,
+                c.country,
+                c.categories,
+                c.network,
+                GROUP_CONCAT(DISTINCT s.url) as urls
+            FROM iptv_channels c
+            LEFT JOIN iptv_streams s ON c.id = s.channel
+            WHERE c.favorite_type = 'indonesia'
         ";
 
         if (!empty($search)) {
-            $sql .= " AND channel LIKE :search";
+            $sql .= " AND c.name LIKE :search";
         }
 
-        $sql .= " ORDER BY channel ASC LIMIT 1000";
+        $sql .= "
+            GROUP BY c.id
+            ORDER BY c.name ASC
+            LIMIT 1000
+        ";
 
         $stmt = $pdo->prepare($sql);
 
         if (!empty($search)) {
             $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
         }
-
-        $stmt->execute();
-        $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     } else {
         $sql = "
-            SELECT id, channel, url, country, language, categories,
-                   COALESCE(logo_base64, logo) as logo
-            FROM iptv_channels
-            WHERE country != 'ID' AND country IS NOT NULL AND country != ''
+            SELECT
+                c.id,
+                c.name as channel,
+                c.country,
+                c.categories,
+                c.network,
+                GROUP_CONCAT(DISTINCT s.url) as urls
+            FROM iptv_channels c
+            LEFT JOIN iptv_streams s ON c.id = s.channel
+            WHERE c.favorite_type = 'worldwide'
         ";
 
         if (!empty($search)) {
-            $sql .= " AND channel LIKE :search";
+            $sql .= " AND c.name LIKE :search";
         }
 
-        $sql .= " ORDER BY channel ASC LIMIT " . $limit;
+        $sql .= "
+            GROUP BY c.id
+            ORDER BY c.name ASC
+            LIMIT " . intval($limit)
+        ;
 
         $stmt = $pdo->prepare($sql);
 
         if (!empty($search)) {
             $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
         }
+    }
 
-        $stmt->execute();
-        $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt->execute();
+    $channels = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Define default logo
+    $defaultLogo = APP_ICON ?: 'https://via.placeholder.com/150x150/4A90E2/FFFFFF?text=TV';
+
+    // Process channels - get first URL and logo
+    $processedChannels = [];
+    foreach ($channels as $channel) {
+        $urls = !empty($channel['urls']) ? explode(',', $channel['urls']) : [];
+        $firstUrl = !empty($urls) ? $urls[0] : '';
+
+        // Get logo for this channel with status check
+        $logoStmt = $pdo->prepare("
+            SELECT url, logo_status
+            FROM iptv_logos
+            WHERE channel = :channelId
+            AND (logo_status = 'valid' OR logo_status IS NULL OR logo_status = 'pending')
+            ORDER BY
+                CASE WHEN logo_status = 'valid' THEN 1 ELSE 2 END,
+                id ASC
+            LIMIT 1
+        ");
+        $logoStmt->bindValue(':channelId', $channel['id'], PDO::PARAM_STR);
+        $logoStmt->execute();
+        $logoData = $logoStmt->fetch(PDO::FETCH_ASSOC);
+        $logo = '';
+
+        if ($logoData) {
+            // Use logo if status is valid or if status is not yet checked (pending/null)
+            if ($logoData['logo_status'] === 'valid' || $logoData['logo_status'] === null || $logoData['logo_status'] === 'pending') {
+                $logo = $logoData['url'];
+            }
+        }
+
+        // Use default logo if empty or invalid
+        if (empty($logo)) {
+            $logo = $defaultLogo;
+        }
+
+        $processedChannels[] = [
+            'id' => $channel['id'],
+            'channel' => $channel['channel'],
+            'url' => $firstUrl,
+            'country' => $channel['country'],
+            'language' => '',
+            'categories' => $channel['categories'],
+            'logo' => $logo,
+            'network' => $channel['network']
+        ];
     }
 
     $obfuscatedChannels = [];
 
-    foreach ($channels as $index => $channel) {
+    foreach ($processedChannels as $index => $channel) {
         $obfuscatedChannels[] = [
             'd' => base64_encode(json_encode($channel)),
             'i' => $index,
@@ -186,7 +254,7 @@ try {
     $response = [
         'error' => false,
         'type' => $type,
-        'count' => count($channels),
+        'count' => count($processedChannels),
         'token' => $sessionToken,
         'ts' => time(),
         'data' => $obfuscatedChannels
@@ -211,7 +279,7 @@ try {
 
 function encodeResponse($data) {
     $json = json_encode($data);
-    $dateKey = gmdate('Ymd'); // UTC date for key
+    $dateKey = gmdate('Ymd');
     $key = SECRET_KEY_PREFIX . $dateKey;
     $encoded = '';
     $keyLen = strlen($key);

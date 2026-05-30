@@ -29,7 +29,7 @@ try {
     $pdo->exec('PRAGMA temp_store = MEMORY');
     $pdo->exec('PRAGMA mmap_size = 268435456');
 
-    // Fetch all channels ordered by name
+    // Fetch all active channels ordered by name
     $stmt = $pdo->query("
         SELECT
             id,
@@ -37,6 +37,7 @@ try {
             url,
             image as img
         FROM channels
+        WHERE status = 1
         ORDER BY name ASC
     ");
 

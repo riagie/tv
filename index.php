@@ -44,15 +44,26 @@ if (!is_array($channels)) {
                 'securityerror: failed to read', 'cookie\' property from \'document\'',
                 'allow-same-origin', 'escape.*sandboxing',
                 'cannot read properties of undefined', 'typeerror: $ is not a function',
-                'uncaught typeerror', 'uncaught securityerror'
+                'uncaught typeerror', 'uncaught securityerror',
+                // RCTI+ and iNEWS errors
+                'rctiplus', 'inews.id', 'inews.co.id',
+                'reloadSourceOnError', 'videojs', 'jwplayer',
+                'failed to read a named property', 'blocked a frame',
+                'document is sandboxed', 'clarity.ms', 'cloudflareinsights',
+                'cdn-cgi/rum', '403.*forbidden', 'manifestLoadError',
+                'networkerror', 'abort document not found'
             ];
 
-            // Source files untuk filter (iframe dari detik.com)
+            // Source files untuk filter (iframe dari detik.com, rctiplus, inews)
             const filterSources = [
                 '20.detik.com', 'detik.com',
                 'gtm.js', 'tam.js', 'detikvideo', 'detikbigdata',
                 'detikliveusercounter', 'videojs.', 'monolib',
-                'livestreaming-', 'impression:v7'
+                'livestreaming-', 'impression:v7',
+                'rctiplus.com', 'rctiplus.id', 'rctiplus',
+                'inews.id', 'inews.co.id', 'sindikasi.inews.id',
+                'clarity.ms', 'cloudflareinsights', 'cdn-cgi',
+                'jwplayer', 'imasdk', 'googletagmanager'
             ];
 
             function shouldFilter(message) {

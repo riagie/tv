@@ -584,12 +584,49 @@ class Player {
         iframe.setAttribute('mozallowfullscreen', 'true');
         iframe.referrerPolicy = 'origin';
 
-        const isDetikUrl = url.includes('detik.com');
-        if (isDetikUrl) {
-            iframe.allow = 'autoplay; fullscreen; picture-in-picture; unmuted-autoplay';
-        } else {
-            iframe.sandbox = 'allow-scripts allow-presentation allow-forms';
+        // Extract domain from URL dynamically
+        let domainName = '';
+        try {
+            if (url && typeof url === 'string') {
+                // Handle both https:// and http://
+                let urlObj;
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    urlObj = new URL(url);
+                } else {
+                    // Try with https prefix
+                    urlObj = new URL('https://' + url);
+                }
+                domainName = urlObj.hostname.replace('www.', '');
+            }
+        } catch (e) {
+            domainName = '';
         }
+
+        // Get root domain (e.g., 'rctiplus.com' from 'embed.rctiplus.com')
+        let rootDomain = domainName;
+        if (domainName) {
+            const parts = domainName.split('.');
+            if (parts.length >= 2) {
+                rootDomain = parts.slice(-2).join('.'); // Get last 2 parts
+            }
+        }
+
+        // Jika URL memiliki domain yang valid, gunakan sebagai trusted
+        // Untuk YouTube gunakan setting khusus
+        const isYouTube = url.includes('youtube.com') || url.includes('youtu.be') || url.includes('www.youtube.com');
+
+        if (isYouTube) {
+            // YouTube butuh setting yang lebih longgar tapi tetap aman
+            iframe.allow = 'autoplay; fullscreen; picture-in-picture; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+        } else if (domainName && rootDomain) {
+            // Untuk domain lain yang valid, berikan akses penuh untuk playback
+            iframe.allow = 'autoplay; fullscreen; picture-in-picture; unmuted-autoplay; encrypted-media; clipboard-write; camera; microphone';
+            // Tidak pakai sandbox untuk membolehkan cookies dan same-origin access
+        } else {
+            // Untuk URL tanpa domain jelas, gunakan sandbox
+            iframe.sandbox = 'allow-scripts allow-presentation allow-forms allow-same-origin';
+        }
+
         iframe.style.cssText = 'width:100%;height:100%;border:none';
 
         if (loadingDiv) {
@@ -841,7 +878,24 @@ const filterKeywords = [
     'detikbigdata',
     'detikliveusercounter',
     'AdsLoader error',
-    'No Ads VAST'
+    'No Ads VAST',
+    // RCTI+ and iNEWS errors
+    'reloadSourceOnError',
+    'videojs',
+    'jwplayer',
+    'rctiplus',
+    'inews.id',
+    'inews.co.id',
+    'sindikasi.inews.id',
+    'clarity.ms',
+    'cloudflareinsights',
+    'cdn-cgi/rum',
+    'SecurityError',
+    'Failed to read',
+    'blocked a frame',
+    'sandboxed',
+    '403',
+    'manifestLoadError'
 ];
 
 function shouldFilterError(message) {
