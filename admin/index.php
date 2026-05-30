@@ -91,10 +91,35 @@ try {
     <link rel="icon" type="image/png" href="<?php echo APP_ICON; ?>">
     <link rel="icon" hreflang="en-us" href="<?php echo APP_ICON; ?>">
     <style>
+        /* Android TV: Hide cursor globally */
         * {
+            cursor: none !important;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+        }
+
+        /* Show cursor only on touch devices */
+        @media (hover: none) and (pointer: coarse) {
+            * {
+                cursor: auto !important;
+            }
+        }
+
+        /* Enhanced focus styles for Android TV */
+        *:focus-visible {
+            outline: 3px solid #e5e5e5 !important;
+            outline-offset: 2px !important;
+        }
+
+        button:focus-visible,
+        a:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        tr:focus-visible {
+            outline: 3px solid #e5e5e5 !important;
+            outline-offset: 3px !important;
+            box-shadow: 0 0 0 3px rgba(229, 229, 229, 0.5), 0 0 12px rgba(229, 229, 229, 0.3) !important;
         }
 
         body {

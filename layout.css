@@ -1,5 +1,17 @@
 /* Emergency Layout Fix */
 
+/* Android TV: Hide cursor globally */
+* {
+    cursor: none !important;
+}
+
+/* Show cursor only on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    * {
+        cursor: auto !important;
+    }
+}
+
 /* Force grid layout */
 .channel-list {
     display: grid !important;

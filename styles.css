@@ -1,5 +1,17 @@
 /* TV Channels - Classic Elegant Design - Optimized for 32" Mi TV (1366x768 / 1920x1080) */
 
+/* Android TV: Hide cursor - use D-pad navigation only */
+* {
+    cursor: none !important;
+}
+
+/* Show cursor only on touch devices (fallback) */
+@media (hover: none) and (pointer: coarse) {
+    * {
+        cursor: auto !important;
+    }
+}
+
 :root {
     --bg: #000000;
     --bg-card: #0a0a0a;
@@ -31,17 +43,20 @@ body {
     font-size: 14px;
 }
 
-/* Focus visible for better keyboard/remote navigation */
+/* Focus visible for better keyboard/remote navigation - Enhanced for Android TV */
 *:focus-visible {
-    outline: 2px solid var(--text);
-    outline-offset: 1px;
-}
-
-button:focus-visible {
+    outline: 3px solid var(--text);
     outline-offset: 2px;
+    border-radius: 2px;
 }
 
-/* Android TV: Better focus indicators */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+    outline-offset: 3px;
+}
+
+/* Android TV: Enhanced focus indicators with glow effect */
 .tab-btn:focus,
 .channel-item:focus,
 .player-btn:focus,
@@ -50,7 +65,19 @@ button:focus-visible {
 .search-input:focus {
     outline: none;
     border-color: var(--text);
-    box-shadow: 0 0 0 2px rgba(229, 229, 229, 0.3);
+    box-shadow: 0 0 0 3px rgba(229, 229, 229, 0.5), 0 0 12px rgba(229, 229, 229, 0.3);
+    transform: scale(1.02);
+    transition: all 0.15s ease-out;
+}
+
+.tab-btn:focus-visible,
+.channel-item:focus-visible,
+.player-btn:focus-visible,
+.player-close:focus-visible,
+.search-clear:focus-visible {
+    outline: 3px solid var(--text);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 3px rgba(229, 229, 229, 0.5), 0 0 12px rgba(229, 229, 229, 0.3);
 }
 
 .app-container {
